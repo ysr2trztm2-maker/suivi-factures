@@ -824,7 +824,11 @@
         if(!r.ok){ st.textContent='❌ Gist introuvable (code '+r.status+')'; return; }
         const data = await r.json();
         const content = data.files?.['data.json']?.content;
-        if(content){ snapshot(); items = JSON.parse(content); localStorage.setItem(KEY, JSON.stringify(items)); render(); }
+        if(content){
+          const payload = JSON.parse(content);
+          const remote = Array.isArray(payload) ? payload : (payload.items || []);
+          snapshot(); items = remote; localStorage.setItem(KEY, JSON.stringify(items)); render();
+        }
         gistSaveCfg({token, gistId:manualId, lastSync:Date.now()});
       } else {
         // Créer un nouveau Gist
