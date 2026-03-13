@@ -888,15 +888,27 @@
 
   function openStatus(id){
     const i = items.find(x=>x.id===id); if(!i) return;
+    const montantTxt = i.montant ? (i.montantApprox?'~':'')+parseFloat(i.montant).toFixed(2).replace('.',',')+' €' : '—';
+    const dateTxt = i.date ? fmtDate(i.date) : '—';
     document.getElementById('m-status-title').textContent = i.nom || '—';
     document.getElementById('m-status-body').innerHTML = `
+      <div style="display:flex;justify-content:space-between;background:var(--bg);border-radius:12px;padding:12px 16px;margin-bottom:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">MONTANT</div>
+          <div style="font-size:20px;font-weight:800;${i.montantApprox?'color:var(--warning)':''}">${montantTxt}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">PRÉLÈVEMENT</div>
+          <div style="font-size:16px;font-weight:700;">${dateTxt}</div>
+        </div>
+      </div>
       <button class="status-btn ${i.factureRecue?'active':''}" onclick="togFact('${id}');renderStatus('${id}')">
         <div class="status-icon">${i.factureRecue?'✓':'📄'}</div>
         <div><div class="status-label">Facture reçue</div><div class="status-sub">${i.factureRecue?'Confirmée':'En attente'}</div></div>
       </button>
       <button class="status-btn pay ${i.prelevementRecu?'active':''}" onclick="togPay('${id}');renderStatus('${id}')">
         <div class="status-icon">${i.prelevementRecu?'✓':'💳'}</div>
-        <div><div class="status-label">Prélevé</div><div class="status-sub">${i.prelevementRecu?'Confirmé':'En attente'}</div></div>
+        <div><div class="status-label">Prélevé</div><div class="status-sub">${i.prelevementRecu?'Confirmé — '+montantTxt:'En attente — '+montantTxt}</div></div>
       </button>
       ${i.factureRecue?`<button class="status-btn ver ${i.verifie?'active':''}" onclick="togVerif('${id}');renderStatus('${id}')">
         <div class="status-icon">${i.verifie?'✓':'🔍'}</div>
