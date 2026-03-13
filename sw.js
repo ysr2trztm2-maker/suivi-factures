@@ -1,4 +1,4 @@
-const CACHE = 'sf-2026-03-13-1308';
+const CACHE = 'sf-2026-03-13-1312';
 const ASSETS = ['./', './index.html', './icon.png'];
 
 self.addEventListener('install', e => {
@@ -23,4 +23,8 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
+});
+
+self.addEventListener('message', e => {
+  if (e.data === 'skipWaiting') self.skipWaiting();
 });
