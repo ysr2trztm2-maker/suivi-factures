@@ -658,7 +658,6 @@
       save(); render();
     } else {
       // Swipe gauche → supprimer
-      if(!confirm('Supprimer '+i.nom+' ?'))return;
       snapshot(); items=items.filter(x=>x.id!==id); save(); render();
     }
   }
@@ -735,7 +734,7 @@
     if(!confirm(msg))return;
     snapshot(); i.verifie=!i.verifie; save(); render();
   }
-  function del(id){ if(!confirm('Supprimer ?'))return; snapshot(); items=items.filter(i=>i.id!==id); save(); render(); }
+  function del(id){ snapshot(); items=items.filter(i=>i.id!==id); save(); render(); }
   function duplicate(id){
     const src=items.find(i=>i.id===id); if(!src)return;
     snapshot();
