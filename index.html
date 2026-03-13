@@ -89,6 +89,24 @@
     .mh{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;padding:12px 4px 6px;}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
 
+    /* VUE LISTE */
+    .rows{display:flex;flex-direction:column;gap:4px;}
+    .row{background:var(--card);border-radius:8px;box-shadow:var(--shadow);border-left:3px solid transparent;
+      display:flex;align-items:center;gap:10px;padding:8px 10px;transition:opacity .2s;}
+    .row.archived{opacity:.45;}
+    .row-bar{width:3px;flex-shrink:0;align-self:stretch;border-radius:2px;}
+    .row-name{font-size:13px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .row-date{font-size:11px;color:var(--text2);flex-shrink:0;}
+    .row-cd{font-size:11px;font-weight:700;flex-shrink:0;min-width:40px;text-align:right;}
+    .row-cd.ok{color:#34c759;} .row-cd.late{color:#ff3b30;} .row-cd.today{color:#ff9500;}
+    .row-dots{display:flex;gap:4px;flex-shrink:0;}
+    .row-dot{width:8px;height:8px;border-radius:50%;background:var(--border);}
+    .row-dot.on{background:var(--primary);}
+    .row-dot.pay{background:#34c759;}
+    .row-dot.ver{background:#af52de;}
+    .btn-view{background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:14px;cursor:pointer;color:var(--text);transition:background .15s;}
+    .btn-view.on{background:var(--primary);color:#fff;border-color:var(--primary);}
+
     /* CARD */
     .card{background:var(--card);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;
       transition:transform .1s,opacity .2s;display:flex;flex-direction:column;border-left:3px solid transparent;}
@@ -197,6 +215,8 @@
     <h1>💳 Suivi Factures</h1>
     <div class="h-actions">
       <button class="btn-icon" id="btn-undo" onclick="undo()" disabled title="Annuler">↩</button>
+      <button class="btn-view on" id="btn-view-grid" onclick="setView('grid')" title="Vue grille">⊞</button>
+      <button class="btn-view" id="btn-view-list" onclick="setView('list')" title="Vue liste">☰</button>
       <button class="btn-icon" onclick="openChart()" title="Graphique">📊</button>
       <button class="btn-icon" onclick="openSummary()" title="Par fournisseur">👥</button>
       <button class="btn-icon" id="btn-sync" onclick="openSync()" title="Sync">☁️<span class="sync-dot" id="sync-dot"></span></button>
@@ -365,6 +385,14 @@
     return PALETTE[h%PALETTE.length];
   }
 
+  let viewMode = localStorage.getItem('viewMode')||'grid';
+  function setView(v){
+    viewMode=v; localStorage.setItem('viewMode',v);
+    document.getElementById('btn-view-grid').classList.toggle('on',v==='grid');
+    document.getElementById('btn-view-list').classList.toggle('on',v==='list');
+    render();
+  }
+
   function snapshot(){ undoStack.push(JSON.stringify(items)); if(undoStack.length>20)undoStack.shift(); }
   function undo(){
     if(!undoStack.length)return;
@@ -463,7 +491,7 @@
     });
     let html='';
     for(const[m,g] of Object.entries(groups)){
-      html+=`<div class="mh">${m}</div><div class="grid">`;
+      html+=`<div class="mh">${m}</div><div class="${viewMode==='list'?'rows':'grid'}">`;
       g.forEach(i=>{
         const d=daysTo(i.date), ok=done(i);
         const color=supplierColor(i.nom);
@@ -490,32 +518,52 @@
           if(barDays>0)   return `<div class="cbar ok">dans ${barDays}j</div>`;
           return `<div class="cbar late">${barDays}j</div>`;
         })() : '';
-        html+=`<div class="${cls}" style="border-left-color:${color}"
-          data-id="${i.id}"
-          ontouchstart="swipeStart(event,'${i.id}')" ontouchend="swipeEnd(event,'${i.id}')">
-          ${barHtml}
-          <div class="ch">
-            <div class="cn">${i.nom||'—'}</div>
-            <div class="ca${i.montantApprox?' approx':''}">${i.montant?(i.montantApprox?'~':'')+parseFloat(i.montant).toFixed(2).replace('.',',')+' €':'—'}</div>
-            <div class="cmeta">${dateRow}${rec?' '+rec:''}${i.notes?' · '+i.notes:''}</div>
-          </div>
-          <div class="flow">
-            <button class="fstep ${i.factureRecue?'done':''}" onclick="togFact('${i.id}')">
-              <span class="sd"></span>${i.factureRecue?'✓ Facture reçue':'Facture reçue'}
-            </button>
-            <button class="fstep ${i.prelevementRecu?'done':''}" onclick="togPay('${i.id}')">
-              <span class="sd"></span>${i.prelevementRecu?'✓ Prélevé':'Prélevé'}
-            </button>
-          </div>
-          ${i.factureRecue?`<button class="vbtn ${i.verifie?'on':''}" onclick="togVerif('${i.id}')">
-            <span class="vdot"></span>${i.verifie?'✓ Vérifié':'🔍 À vérifier'}
-          </button>`:''}
-          <div class="cac">
-            <button class="ab" onclick="edit('${i.id}')">Modifier</button>
-            <button class="ab" onclick="duplicate('${i.id}')">Dupliquer</button>
-            <button class="ab del" onclick="del('${i.id}')">Suppr.</button>
-          </div>
-        </div>`;
+        if(viewMode==='list'){
+          const cdClass = !ok&&barDays!==null ? (barDays===0?'today':barDays>0?'ok':'late') : '';
+          const cdText  = !ok&&barDays!==null ? (barDays===0?'auj.':(barDays>0?`+${barDays}j`:`${barDays}j`)) : '';
+          const montTxt = i.montant?(i.montantApprox?'~':'')+parseFloat(i.montant).toFixed(2).replace('.',',')+' €':'';
+          const refDateTxt = (filter==='wait-facture') ? (i.dateEmission?fmtDate(i.dateEmission):'') : (i.date?fmtDate(i.date):'');
+          html+=`<div class="row${isArchived(i)?' archived':''}" style="border-left-color:${color}" data-id="${i.id}"
+            ontouchstart="swipeStart(event,'${i.id}')" ontouchend="swipeEnd(event,'${i.id}')"
+            onclick="edit('${i.id}')">
+            <div class="row-name">${i.nom||'—'}</div>
+            <div class="row-date">${refDateTxt}</div>
+            ${montTxt?`<div class="row-date${i.montantApprox?' approx':''}">${montTxt}</div>`:''}
+            <div class="row-dots">
+              <div class="row-dot ${i.factureRecue?'on':''}" title="Facture reçue"></div>
+              <div class="row-dot pay ${i.prelevementRecu?'on':''}" title="Prélevé"></div>
+              <div class="row-dot ver ${i.verifie?'on':''}" title="Vérifié"></div>
+            </div>
+            ${cdText?`<div class="row-cd ${cdClass}">${cdText}</div>`:''}
+          </div>`;
+        } else {
+          html+=`<div class="${cls}" style="border-left-color:${color}"
+            data-id="${i.id}"
+            ontouchstart="swipeStart(event,'${i.id}')" ontouchend="swipeEnd(event,'${i.id}')">
+            ${barHtml}
+            <div class="ch">
+              <div class="cn">${i.nom||'—'}</div>
+              <div class="ca${i.montantApprox?' approx':''}">${i.montant?(i.montantApprox?'~':'')+parseFloat(i.montant).toFixed(2).replace('.',',')+' €':'—'}</div>
+              <div class="cmeta">${dateRow}${rec?' '+rec:''}${i.notes?' · '+i.notes:''}</div>
+            </div>
+            <div class="flow">
+              <button class="fstep ${i.factureRecue?'done':''}" onclick="togFact('${i.id}')">
+                <span class="sd"></span>${i.factureRecue?'✓ Facture reçue':'Facture reçue'}
+              </button>
+              <button class="fstep ${i.prelevementRecu?'done':''}" onclick="togPay('${i.id}')">
+                <span class="sd"></span>${i.prelevementRecu?'✓ Prélevé':'Prélevé'}
+              </button>
+            </div>
+            ${i.factureRecue?`<button class="vbtn ${i.verifie?'on':''}" onclick="togVerif('${i.id}')">
+              <span class="vdot"></span>${i.verifie?'✓ Vérifié':'🔍 À vérifier'}
+            </button>`:''}
+            <div class="cac">
+              <button class="ab" onclick="edit('${i.id}')">Modifier</button>
+              <button class="ab" onclick="duplicate('${i.id}')">Dupliquer</button>
+              <button class="ab del" onclick="del('${i.id}')">Suppr.</button>
+            </div>
+          </div>`;
+        }
       });
       html+=`</div>`;
     }
@@ -911,7 +959,8 @@
   gistPull();
   gistStatusUI();
   // ─────────────────────────────────────────────────────────────
-
+  document.getElementById('btn-view-grid').classList.toggle('on', viewMode==='grid');
+  document.getElementById('btn-view-list').classList.toggle('on', viewMode==='list');
   render();
 
   if('Notification'in window&&Notification.permission==='default')
