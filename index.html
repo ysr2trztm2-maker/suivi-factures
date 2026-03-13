@@ -68,7 +68,8 @@
     /* STATS */
     .stats{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;scrollbar-width:none;}
     .stats::-webkit-scrollbar{display:none;}
-    .stat{background:var(--card);border-radius:10px;padding:8px 12px;min-width:80px;box-shadow:var(--shadow);flex-shrink:0;cursor:pointer;transition:box-shadow .2s;}
+    .stat{background:var(--card);border-radius:10px;padding:8px 12px;min-width:80px;box-shadow:var(--shadow);flex-shrink:0;cursor:pointer;transition:box-shadow .2s,outline .15s;}
+    .stat.on{outline:2px solid var(--primary);}
     .stat:hover{box-shadow:0 4px 20px rgba(0,0,0,.12);}
     .slabel{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
     .sval{font-size:16px;font-weight:700;}
@@ -250,12 +251,8 @@
     </select>
   </div>
   <div class="filters">
-    <button class="fb on" onclick="setF('all',this)">Tout</button>
-    <button class="fb" onclick="setF('wait-facture',this)">📄 Att. facture</button>
-    <button class="fb" onclick="setF('wait-paiement',this)">💳 Att. prélèvement</button>
-    <button class="fb" onclick="setF('a-verifier',this)">🔍 À vérifier</button>
-    <button class="fb" onclick="setF('done',this)">✅ Confirmés</button>
-    <button class="fb" onclick="setF('archive',this)">📦 Archive</button>
+    <button class="fb on" id="fb-all" onclick="setF('all',this)">Tout</button>
+    <button class="fb" id="fb-archive" onclick="setF('archive',this)">📦 Archive</button>
     <select class="fb" id="period-sel" onchange="setPeriod(this.value)">
       <option value="">📅 Toutes périodes</option>
     </select>
@@ -263,12 +260,12 @@
 </header>
 
 <div class="stats">
-  <div class="stat" onclick="openChart()"><div class="slabel">Ce mois</div><div class="sval" id="s-total">0 €</div></div>
-  <div class="stat"><div class="slabel">Att. facture</div><div class="sval w" id="s-wf">0</div></div>
-  <div class="stat"><div class="slabel">Att. prélèv.</div><div class="sval w" id="s-wp">0</div></div>
-  <div class="stat"><div class="slabel">À vérifier</div><div class="sval d" id="s-verif">0</div></div>
-  <div class="stat"><div class="slabel">En retard</div><div class="sval d" id="s-late">0</div></div>
-  <div class="stat" onclick="openSummary()"><div class="slabel">Confirmés</div><div class="sval s" id="s-done">0</div></div>
+  <div class="stat" id="stat-total" onclick="openChart()"><div class="slabel">Ce mois</div><div class="sval" id="s-total">0 €</div></div>
+  <div class="stat" id="stat-wf" onclick="setStatF('wait-facture','stat-wf')"><div class="slabel">Att. facture</div><div class="sval w" id="s-wf">0</div></div>
+  <div class="stat" id="stat-wp" onclick="setStatF('wait-paiement','stat-wp')"><div class="slabel">Att. prélèv.</div><div class="sval w" id="s-wp">0</div></div>
+  <div class="stat" id="stat-verif" onclick="setStatF('a-verifier','stat-verif')"><div class="slabel">À vérifier</div><div class="sval d" id="s-verif">0</div></div>
+  <div class="stat" id="stat-late" onclick="setStatF('late','stat-late')"><div class="slabel">En retard</div><div class="sval d" id="s-late">0</div></div>
+  <div class="stat" id="stat-done" onclick="setStatF('done','stat-done')"><div class="slabel">Confirmés</div><div class="sval s" id="s-done">0</div></div>
 </div>
 
 <div class="alert-bar" id="abar"><strong>⚠️ Alertes</strong><div id="alist"></div></div>
@@ -456,7 +453,19 @@
   function setF(f, btn){
     filter=f;
     document.querySelectorAll('button.fb').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.stat').forEach(s=>s.classList.remove('on'));
     if(btn) btn.classList.add('on');
+    if(f==='all') document.getElementById('fb-all')?.classList.add('on');
+    if(f==='archive') document.getElementById('fb-archive')?.classList.add('on');
+    render();
+  }
+
+  function setStatF(f, statId){
+    filter = (filter===f) ? 'all' : f; // toggle — 2e clic revient à Tout
+    document.querySelectorAll('button.fb').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.stat').forEach(s=>s.classList.remove('on'));
+    if(filter==='all') document.getElementById('fb-all')?.classList.add('on');
+    else document.getElementById(statId)?.classList.add('on');
     render();
   }
 
@@ -478,9 +487,10 @@
       if(search && !(i.nom||'').toLowerCase().includes(search)) return false;
       if(filter==='archive')       return isArchived(i);
       if(filter==='done')          return done(i) && !isArchived(i);
-      if(filter==='wait-facture')  return !i.factureRecue;
-      if(filter==='wait-paiement') return i.factureRecue && !i.prelevementRecu;
-      if(filter==='a-verifier')    return i.factureRecue && !i.verifie;
+      if(filter==='wait-facture')  return !i.factureRecue && !isArchived(i);
+      if(filter==='wait-paiement') return i.factureRecue && !i.prelevementRecu && !isArchived(i);
+      if(filter==='a-verifier')    return i.factureRecue && !i.verifie && !isArchived(i);
+      if(filter==='late')          return !done(i) && i.date && daysTo(i.date)<0 && !isArchived(i);
       if(filter==='all')           return !isArchived(i);
       return true;
     });
