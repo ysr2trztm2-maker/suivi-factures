@@ -967,25 +967,32 @@
   if('Notification'in window&&Notification.permission==='default')
     setTimeout(()=>Notification.requestPermission(),3000);
 
-  // SERVICE WORKER — mise à jour automatique iOS
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'}).then(reg=>{
-      const doUpdate = r => {
-        if(!r.waiting) return;
-        r.waiting.postMessage('skipWaiting');
-      };
-      reg.addEventListener('updatefound', ()=>{
-        const nw = reg.installing;
-        nw.addEventListener('statechange', ()=>{
-          if(nw.state==='installed') doUpdate(reg);
-        });
-      });
-      navigator.serviceWorker.addEventListener('controllerchange', ()=>location.reload());
-      document.addEventListener('visibilitychange', ()=>{
-        if(document.visibilityState==='visible') reg.update();
-      });
-    });
+  // SERVICE WORKER (offline uniquement)
+  if('serviceWorker' in navigator)
+    navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'});
+
+  // DÉTECTION MISE À JOUR via version.txt
+  async function checkVersion(){
+    try{
+      const r = await fetch('./version.txt?t='+Date.now());
+      if(!r.ok) return;
+      const remote = (await r.text()).trim();
+      const local = localStorage.getItem('app_version');
+      if(local && local !== remote){
+        const bar = document.createElement('div');
+        bar.id = 'update-bar';
+        bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#0071e3;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600;';
+        bar.innerHTML = '<span>🔄 Mise à jour disponible</span><button onclick="localStorage.setItem(\'app_version\',\''+remote+'\');location.reload(true);" style="background:rgba(255,255,255,.25);border:none;color:#fff;padding:7px 16px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;">Installer</button>';
+        document.body.prepend(bar);
+      } else {
+        localStorage.setItem('app_version', remote);
+      }
+    } catch(e){}
   }
+  checkVersion();
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState==='visible') checkVersion();
+  });
 </script>
 </body>
 </html>
