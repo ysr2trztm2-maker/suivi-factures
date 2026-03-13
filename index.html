@@ -987,7 +987,7 @@
         gistSaveCfg({token, gistId:manualId, lastSync:Date.now()});
       } else {
         // Créer un nouveau Gist
-        const payload = {items, _ts: Date.now()};
+        const now = new Date(); const payload = {items, _ts: now.getTime(), _date: now.toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})};
         const r = await fetch('https://api.github.com/gists', {
           method:'POST',
           headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/vnd.github+json'},
@@ -1006,7 +1006,7 @@
     if(!cfg.token || !cfg.gistId) return;
     syncDot('spin');
     try {
-      const payload = {items, _ts: Date.now()};
+      const now = new Date(); const payload = {items, _ts: now.getTime(), _date: now.toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})};
       const r = await fetch('https://api.github.com/gists/'+cfg.gistId, {
         method:'PATCH',
         headers:{'Authorization':'Bearer '+cfg.token,'Content-Type':'application/json','Accept':'application/vnd.github+json'},
