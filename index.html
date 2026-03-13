@@ -1008,8 +1008,44 @@
   document.getElementById('btn-view-toggle').textContent = viewMode==='grid' ? '⊞' : '☰';
   render();
 
-  if('Notification'in window&&Notification.permission==='default')
-    setTimeout(()=>Notification.requestPermission(),3000);
+  // NOTIFICATIONS
+  function sendNotifs(){
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    const retard = items.filter(i => !done(i) && !isArchived(i) && i.date && daysTo(i.date) < 0);
+    const urgent = items.filter(i => !done(i) && !isArchived(i) && i.date && daysTo(i.date) >= 0 && daysTo(i.date) <= 3);
+    if(retard.length > 0){
+      new Notification('⚠️ Factures en retard', {
+        body: retard.map(i => `${i.nom} — ${Math.abs(daysTo(i.date))}j de retard`).join('\n'),
+        icon: './icon.png',
+        badge: './icon.png',
+        tag: 'retard'
+      });
+    }
+    if(urgent.length > 0){
+      new Notification('📅 Factures à traiter', {
+        body: urgent.map(i => `${i.nom} — ${daysTo(i.date)===0?'aujourd\'hui':'dans '+daysTo(i.date)+'j'}`).join('\n'),
+        icon: './icon.png',
+        badge: './icon.png',
+        tag: 'urgent'
+      });
+    }
+  }
+
+  async function initNotifs(){
+    if(!('Notification' in window)) return;
+    if(Notification.permission === 'default'){
+      const perm = await Notification.requestPermission();
+      if(perm === 'granted') setTimeout(sendNotifs, 1000);
+    } else if(Notification.permission === 'granted'){
+      setTimeout(sendNotifs, 1000);
+    }
+  }
+
+  initNotifs();
+  // Renvoyer les notifs quand on revient sur l'app
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible') sendNotifs();
+  });
 
   // SERVICE WORKER (offline uniquement)
   if('serviceWorker' in navigator)
