@@ -1064,6 +1064,8 @@
   // Pull au chargement
   gistPull();
   gistStatusUI();
+  // Sauvegarde périodique toutes les 5 minutes
+  setInterval(()=>{ if(gistCfg().token) gistPush(); }, 5 * 60 * 1000);
   // ─────────────────────────────────────────────────────────────
   document.getElementById('btn-view-toggle').textContent = viewMode==='grid' ? '⊞' : '☰';
   render();
