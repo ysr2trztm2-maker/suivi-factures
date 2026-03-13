@@ -99,11 +99,14 @@
     .row-date{font-size:11px;color:var(--text2);flex-shrink:0;}
     .row-cd{font-size:11px;font-weight:700;flex-shrink:0;min-width:40px;text-align:right;}
     .row-cd.ok{color:#34c759;} .row-cd.late{color:#ff3b30;} .row-cd.today{color:#ff9500;}
-    .row-dots{display:flex;gap:4px;flex-shrink:0;}
-    .row-dot{width:8px;height:8px;border-radius:50%;background:var(--border);}
+    .row-dots{display:flex;gap:6px;flex-shrink:0;}
+    .row-dot{width:22px;height:22px;border-radius:50%;background:var(--border);cursor:pointer;border:none;flex-shrink:0;transition:transform .1s,background .15s;}
+    .row-dot:active{transform:scale(.85);}
     .row-dot.on{background:var(--primary);}
-    .row-dot.pay{background:#34c759;}
-    .row-dot.ver{background:#af52de;}
+    .row-dot.pay.on{background:#34c759;}
+    .row-dot.ver.on{background:#af52de;}
+    .row-dot.pay{background:var(--border);}
+    .row-dot.ver{background:var(--border);}
     .btn-view{background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:14px;cursor:pointer;color:var(--text);transition:background .15s;}
     .btn-view.on{background:var(--primary);color:#fff;border-color:var(--primary);}
 
@@ -530,9 +533,9 @@
             <div class="row-date">${refDateTxt}</div>
             ${montTxt?`<div class="row-date${i.montantApprox?' approx':''}">${montTxt}</div>`:''}
             <div class="row-dots">
-              <div class="row-dot ${i.factureRecue?'on':''}" title="Facture reçue"></div>
-              <div class="row-dot pay ${i.prelevementRecu?'on':''}" title="Prélevé"></div>
-              <div class="row-dot ver ${i.verifie?'on':''}" title="Vérifié"></div>
+              <button class="row-dot ${i.factureRecue?'on':''}" title="Facture reçue" onclick="event.stopPropagation();togFact('${i.id}')"></button>
+              <button class="row-dot pay ${i.prelevementRecu?'on':''}" title="Prélevé" onclick="event.stopPropagation();togPay('${i.id}')"></button>
+              ${i.factureRecue?`<button class="row-dot ver ${i.verifie?'on':''}" title="Vérifié" onclick="event.stopPropagation();togVerif('${i.id}')"></button>`:`<button class="row-dot ver" style="opacity:.3" disabled></button>`}
             </div>
             ${cdText?`<div class="row-cd ${cdClass}">${cdText}</div>`:''}
           </div>`;
