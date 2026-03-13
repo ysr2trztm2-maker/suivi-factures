@@ -965,6 +965,27 @@
 
   if('Notification'in window&&Notification.permission==='default')
     setTimeout(()=>Notification.requestPermission(),3000);
+
+  // SERVICE WORKER — détection de mise à jour
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        nw.addEventListener('statechange',()=>{
+          if(nw.state==='installed'&&navigator.serviceWorker.controller){
+            const bar=document.createElement('div');
+            bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#0071e3;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600;safe-area-inset-top:env(safe-area-inset-top);';
+            bar.innerHTML='<span>🔄 Mise à jour disponible</span><button style="background:rgba(255,255,255,.25);border:none;color:#fff;padding:7px 16px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;">Installer</button>';
+            bar.querySelector('button').onclick=()=>{
+              nw.postMessage('skipWaiting');
+              navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
+            };
+            document.body.prepend(bar);
+          }
+        });
+      });
+    });
+  }
 </script>
 </body>
 </html>
