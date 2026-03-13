@@ -386,6 +386,23 @@
   </div>
 </div>
 
+<!-- POPUP CONFIRMATION FACTURE REÇUE -->
+<div class="mb" id="m-factrecu" onclick="if(event.target===this)closeFactRecu()">
+  <div class="modal" style="padding-bottom:20px;">
+    <div class="mhandle"></div>
+    <div class="mhead"><h2 id="m-factrecu-title">Facture reçue</h2><button class="mbtnclose" onclick="closeFactRecu()">×</button></div>
+    <p class="note" style="margin-bottom:16px;">Confirmez ou saisissez le montant de la facture reçue.</p>
+    <div class="fg">
+      <label>Montant (€)</label>
+      <input type="number" id="factrecu-montant" placeholder="0.00" step="0.01" inputmode="decimal" style="font-size:22px;font-weight:700;text-align:center;" />
+    </div>
+    <input type="hidden" id="factrecu-id" />
+    <div class="mact">
+      <button class="bsave" onclick="confirmFactRecu()">✓ Confirmer</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const KEY = 'suivi_v1';
   const _raw = JSON.parse(localStorage.getItem(KEY) || '[]');
@@ -618,13 +635,34 @@
 
   function togFact(id){
     const i=items.find(x=>x.id===id); if(!i)return;
-    const msg=i.factureRecue?`Annuler "Facture reçue" pour ${i.nom} ?`:`Confirmer la réception de la facture ${i.nom} ?`;
-    if(!confirm(msg))return;
-    snapshot();
-    i.factureRecue=!i.factureRecue;
-    if(i.factureRecue) triggerNextOccurrence(i);
-    save(); render();
+    if(i.factureRecue){
+      // Décocher — confirmation simple
+      if(!confirm(`Annuler "Facture reçue" pour ${i.nom} ?`)) return;
+      snapshot(); i.factureRecue=false; i.prelevementRecu=false; save(); render();
+      return;
+    }
+    // Cocher → ouvrir popup montant
+    document.getElementById('factrecu-id').value = id;
+    document.getElementById('factrecu-montant').value = i.montant || '';
+    document.getElementById('m-factrecu-title').textContent = i.nom || 'Facture reçue';
+    document.getElementById('m-factrecu').classList.add('on');
+    setTimeout(()=>document.getElementById('factrecu-montant').focus(), 300);
   }
+
+  function confirmFactRecu(){
+    const id = document.getElementById('factrecu-id').value;
+    const montant = document.getElementById('factrecu-montant').value;
+    const i = items.find(x=>x.id===id); if(!i) return;
+    snapshot();
+    i.factureRecue = true;
+    if(montant) { i.montant = montant; i.montantApprox = false; }
+    triggerNextOccurrence(i);
+    save(); render();
+    closeFactRecu();
+    if(document.getElementById('m-status').classList.contains('on')) openStatus(id);
+  }
+
+  function closeFactRecu(){ document.getElementById('m-factrecu').classList.remove('on'); }
 
   function triggerNextOccurrence(i){
     if(!i.recurrence||i.recurrence==='none') return;
