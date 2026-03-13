@@ -215,8 +215,7 @@
     <h1>💳 Suivi Factures</h1>
     <div class="h-actions">
       <button class="btn-icon" id="btn-undo" onclick="undo()" disabled title="Annuler">↩</button>
-      <button class="btn-view on" id="btn-view-grid" onclick="setView('grid')" title="Vue grille">⊞</button>
-      <button class="btn-view" id="btn-view-list" onclick="setView('list')" title="Vue liste">☰</button>
+      <button class="btn-view" id="btn-view-toggle" onclick="setView(viewMode==='grid'?'list':'grid')" title="Changer vue">⊞</button>
       <button class="btn-icon" onclick="openChart()" title="Graphique">📊</button>
       <button class="btn-icon" onclick="openSummary()" title="Par fournisseur">👥</button>
       <button class="btn-icon" id="btn-sync" onclick="openSync()" title="Sync">☁️<span class="sync-dot" id="sync-dot"></span></button>
@@ -389,8 +388,8 @@
   let viewMode = localStorage.getItem('viewMode')||'grid';
   function setView(v){
     viewMode=v; localStorage.setItem('viewMode',v);
-    document.getElementById('btn-view-grid').classList.toggle('on',v==='grid');
-    document.getElementById('btn-view-list').classList.toggle('on',v==='list');
+    const btn=document.getElementById('btn-view-toggle');
+    btn.textContent=v==='grid'?'⊞':'☰';
     render();
   }
 
@@ -960,8 +959,7 @@
   gistPull();
   gistStatusUI();
   // ─────────────────────────────────────────────────────────────
-  document.getElementById('btn-view-grid').classList.toggle('on', viewMode==='grid');
-  document.getElementById('btn-view-list').classList.toggle('on', viewMode==='list');
+  document.getElementById('btn-view-toggle').textContent = viewMode==='grid' ? '⊞' : '☰';
   render();
 
   if('Notification'in window&&Notification.permission==='default')
