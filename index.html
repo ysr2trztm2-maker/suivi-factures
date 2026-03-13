@@ -222,6 +222,16 @@
     .sum-name{font-size:14px;font-weight:600;}
     .sum-detail{font-size:11px;color:var(--text2);}
     .sum-amt{font-size:15px;font-weight:700;color:var(--primary);}
+
+    /* HISTORY MODAL */
+    .hrev{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+    .hrev:last-child{border:none;}
+    .hrev-left{flex:1;}
+    .hrev-date{font-size:14px;font-weight:600;}
+    .hrev-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+    .hrev-btn{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;}
+    .hrev-btn:active{opacity:.8;}
+    .hrev-current{background:var(--border);color:var(--text2);border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;flex-shrink:0;cursor:default;}
   </style>
 </head>
 <body>
@@ -342,6 +352,7 @@
       <div class="gist-status" id="gist-status"></div>
       <div id="gist-actions" style="display:none">
         <button class="sbtn" style="width:100%;margin-top:6px" onclick="gistPull(true)">⬇ Forcer import depuis Gist</button>
+        <button class="sbtn" style="width:100%;margin-top:6px" onclick="openGistHistory()">🕐 Historique des sauvegardes</button>
         <button class="sbtn" style="width:100%;margin-top:6px" onclick="gistDisconnect()">🔌 Déconnecter</button>
       </div>
       <div class="last-sync" id="last-sync"></div>
@@ -397,6 +408,15 @@
     <div class="mact">
       <button class="bsave" onclick="confirmFactRecu()">✓ Confirmer</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIQUE GIST -->
+<div class="mb" id="m-history" onclick="if(event.target===this)closeHistory()">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mhead"><h2>🕐 Historique des sauvegardes</h2><button class="mbtnclose" onclick="closeHistory()">×</button></div>
+    <div id="m-history-body"><div style="text-align:center;padding:30px;color:var(--text2)">Chargement…</div></div>
   </div>
 </div>
 
@@ -1108,6 +1128,72 @@
   document.addEventListener('visibilitychange', () => {
     if(document.visibilityState === 'visible') sendNotifs();
   });
+
+  // ── HISTORIQUE GIST ───────────────────────────────────────────
+  function closeHistory(){ document.getElementById('m-history').classList.remove('on'); }
+
+  async function openGistHistory(){
+    const cfg = gistCfg();
+    if(!cfg.token || !cfg.gistId){ alert('Gist non connecté'); return; }
+    const body = document.getElementById('m-history-body');
+    body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2)">Chargement…</div>';
+    document.getElementById('m-history').classList.add('on');
+    try {
+      const r = await fetch('https://api.github.com/gists/'+cfg.gistId, {
+        headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json'}
+      });
+      if(!r.ok){ body.innerHTML='<p style="color:var(--danger);padding:16px">Erreur '+r.status+'</p>'; return; }
+      const data = await r.json();
+      const history = data.history || [];
+      if(!history.length){ body.innerHTML='<p style="padding:16px;color:var(--text2)">Aucun historique disponible.</p>'; return; }
+      const currentVersion = history[0].version;
+      body.innerHTML = history.map((h, idx) => {
+        const date = new Date(h.committed_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        const changes = h.change_status ? `+${h.change_status.additions||0} / -${h.change_status.deletions||0} lignes` : '';
+        const isCurrent = h.version === currentVersion;
+        return `<div class="hrev">
+          <div class="hrev-left">
+            <div class="hrev-date">${date}${isCurrent?' <span style="font-size:10px;background:var(--success);color:#fff;border-radius:6px;padding:2px 6px;margin-left:6px">actuelle</span>':''}</div>
+            ${changes?`<div class="hrev-sub">${changes}</div>`:''}
+          </div>
+          ${isCurrent
+            ? `<span class="hrev-current">Actuelle</span>`
+            : `<button class="hrev-btn" onclick="restoreGistVersion('${h.version}')">Restaurer</button>`}
+        </div>`;
+      }).join('');
+    } catch(e) {
+      body.innerHTML = `<p style="color:var(--danger);padding:16px">Erreur : ${e.message}</p>`;
+    }
+  }
+
+  async function restoreGistVersion(version){
+    if(!confirm('Restaurer cette version ? Les données actuelles seront remplacées.')) return;
+    const cfg = gistCfg();
+    const body = document.getElementById('m-history-body');
+    body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2)">Restauration en cours…</div>';
+    try {
+      const r = await fetch(`https://api.github.com/gists/${cfg.gistId}/${version}`, {
+        headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json'}
+      });
+      if(!r.ok){ body.innerHTML=`<p style="color:var(--danger);padding:16px">Erreur ${r.status}</p>`; return; }
+      const data = await r.json();
+      const content = data.files?.['data.json']?.content;
+      if(!content){ body.innerHTML='<p style="color:var(--danger);padding:16px">Contenu introuvable dans cette version.</p>'; return; }
+      const payload = JSON.parse(content);
+      const restored = Array.isArray(payload) ? payload : (payload.items || []);
+      snapshot();
+      items = restored;
+      localStorage.setItem(KEY, JSON.stringify(items));
+      render();
+      // Pousser la version restaurée comme nouvelle sauvegarde
+      await gistPush();
+      closeHistory();
+      alert(`✅ ${restored.length} entrée(s) restaurée(s).`);
+    } catch(e) {
+      body.innerHTML = `<p style="color:var(--danger);padding:16px">Erreur : ${e.message}</p>`;
+    }
+  }
+  // ─────────────────────────────────────────────────────────────
 
   // SERVICE WORKER (offline uniquement)
   if('serviceWorker' in navigator)
