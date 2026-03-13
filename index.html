@@ -100,13 +100,13 @@
     .row-cd{font-size:11px;font-weight:700;flex-shrink:0;min-width:40px;text-align:right;}
     .row-cd.ok{color:#34c759;} .row-cd.late{color:#ff3b30;} .row-cd.today{color:#ff9500;}
     .row-dots{display:flex;gap:6px;flex-shrink:0;}
-    .row-dot{width:22px;height:22px;border-radius:50%;background:var(--border);cursor:pointer;border:none;flex-shrink:0;transition:transform .1s,background .15s;}
+    .row-dot{width:22px;height:22px;border-radius:50%;background:var(--border);cursor:pointer;flex-shrink:0;transition:transform .1s,background .15s;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:rgba(255,255,255,0.5);}
     .row-dot:active{transform:scale(.85);}
-    .row-dot.on{background:var(--primary);}
-    .row-dot.pay.on{background:#34c759;}
-    .row-dot.ver.on{background:#af52de;}
+    .row-dot.on{background:var(--primary);color:#fff;}
     .row-dot.pay{background:var(--border);}
+    .row-dot.pay.on{background:#34c759;color:#fff;}
     .row-dot.ver{background:var(--border);}
+    .row-dot.ver.on{background:#af52de;color:#fff;}
     .btn-view{background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:14px;cursor:pointer;color:var(--text);transition:background .15s;}
     .btn-view.on{background:var(--primary);color:#fff;border-color:var(--primary);}
 
@@ -554,9 +554,9 @@
             <div class="row-date">${refDateTxt}</div>
             ${montTxt?`<div class="row-date${i.montantApprox?' approx':''}">${montTxt}</div>`:''}
             <div class="row-dots" onclick="event.stopPropagation();openStatus('${i.id}')">
-              <div class="row-dot ${i.factureRecue?'on':''}"></div>
-              <div class="row-dot pay ${i.prelevementRecu?'on':''}"></div>
-              <div class="row-dot ver ${i.verifie&&i.factureRecue?'on':''}" style="${!i.factureRecue?'opacity:.3':''}"></div>
+              <div class="row-dot ${i.factureRecue?'on':''}">F</div>
+              <div class="row-dot pay ${i.prelevementRecu?'on':''}">P</div>
+              <div class="row-dot ver ${i.verifie&&i.factureRecue?'on':''}" style="${!i.factureRecue?'opacity:.3':''}">V</div>
             </div>
             ${cdText?`<div class="row-cd ${cdClass}">${cdText}</div>`:''}
           </div>`;
