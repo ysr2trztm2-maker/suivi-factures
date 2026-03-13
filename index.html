@@ -365,7 +365,8 @@
 
 <script>
   const KEY = 'suivi_v1';
-  let items = JSON.parse(localStorage.getItem(KEY) || '[]');
+  const _raw = JSON.parse(localStorage.getItem(KEY) || '[]');
+  let items = Array.isArray(_raw) ? _raw : (_raw.items || []);
   let filter = 'all';
   let search = '';
   let sortBy = 'date';
