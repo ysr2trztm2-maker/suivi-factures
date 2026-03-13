@@ -967,11 +967,23 @@
   if('Notification'in window&&Notification.permission==='default')
     setTimeout(()=>Notification.requestPermission(),3000);
 
-  // SERVICE WORKER — mise à jour automatique
+  // SERVICE WORKER — mise à jour automatique iOS
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js');
-    navigator.serviceWorker.addEventListener('message', e => {
-      if(e.data === 'reload') window.location.reload();
+    navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'}).then(reg=>{
+      const doUpdate = r => {
+        if(!r.waiting) return;
+        r.waiting.postMessage('skipWaiting');
+      };
+      reg.addEventListener('updatefound', ()=>{
+        const nw = reg.installing;
+        nw.addEventListener('statechange', ()=>{
+          if(nw.state==='installed') doUpdate(reg);
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>location.reload());
+      document.addEventListener('visibilitychange', ()=>{
+        if(document.visibilityState==='visible') reg.update();
+      });
     });
   }
 </script>
