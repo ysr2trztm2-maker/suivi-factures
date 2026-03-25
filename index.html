@@ -76,11 +76,18 @@
     .sval.d{color:var(--danger);} .sval.w{color:var(--warning);} .sval.s{color:var(--success);}
 
     /* ALERTS */
-    .alert-bar{margin:0 16px 10px;background:#fff3cd;border:1px solid #ffc107;border-radius:var(--r);
-      padding:10px 14px;font-size:13px;color:#856404;display:none;}
-    @media(prefers-color-scheme:dark){.alert-bar{background:#3a2e00;border-color:#ffc107;color:#ffd60a;}}
-    .alert-bar.on{display:block;}
-    .alert-bar strong{display:block;margin-bottom:4px;}
+    .alert-bar{margin:0 16px 10px;border-radius:var(--r);font-size:13px;display:none;gap:8px;flex-direction:column;}
+    .alert-bar.on{display:flex;}
+    .alert-section{padding:10px 14px;border-radius:var(--r);border-left:4px solid;}
+    .alert-section.factures{background:#fff0f0;border-color:#ff3b30;color:#a00;}
+    .alert-section.prelevements{background:#fff3cd;border-color:#ffc107;color:#856404;}
+    .alert-section.averifier{background:#e8f4fd;border-color:#007aff;color:#005a99;}
+    @media(prefers-color-scheme:dark){
+      .alert-section.factures{background:#3a0000;color:#ff6b6b;}
+      .alert-section.prelevements{background:#3a2e00;color:#ffd60a;}
+      .alert-section.averifier{background:#001a33;color:#4db8ff;}
+    }
+    .alert-section strong{display:block;margin-bottom:4px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;}
     .ai{margin:2px 0;}
 
     /* LIST */
@@ -278,7 +285,11 @@
   <div class="stat" id="stat-done" onclick="setStatF('done','stat-done')"><div class="slabel">Confirmés</div><div class="sval s" id="s-done">0</div></div>
 </div>
 
-<div class="alert-bar" id="abar"><strong>⚠️ Alertes</strong><div id="alist"></div></div>
+<div class="alert-bar" id="abar">
+  <div class="alert-section factures" id="abar-factures" style="display:none"><strong>📄 Factures à recevoir</strong><div id="alist-factures"></div></div>
+  <div class="alert-section prelevements" id="abar-prelevements" style="display:none"><strong>💳 Prélèvements en attente</strong><div id="alist-prelevements"></div></div>
+  <div class="alert-section averifier" id="abar-averifier" style="display:none"><strong>✅ À vérifier</strong><div id="alist-averifier"></div></div>
+</div>
 
 <div class="list" id="list"></div>
 
@@ -538,16 +549,23 @@
     document.getElementById('s-verif').textContent=items.filter(i=>i.factureRecue&&!i.verifie&&!isArchived(i)).length;
     document.getElementById('s-late').textContent=items.filter(i=>!done(i)&&daysTo(i.date)<0&&!isArchived(i)).length;
     document.getElementById('s-done').textContent=items.filter(i=>done(i)&&!isArchived(i)).length;
-    const a=[];
-    items.forEach(i=>{
+    // Alertes séparées par catégorie
+    const aFact=[], aPrel=[], aVerif=[];
+    items.filter(i=>!isArchived(i)).forEach(i=>{
       const d=daysTo(i.date);
-      if(!done(i)&&!isArchived(i)){
-        if(d<0) a.push(`🔴 <strong>${i.nom}</strong> — retard ${Math.abs(d)}j (${fmtDate(i.date)})`);
-        else if(d<=3) a.push(`🟡 <strong>${i.nom}</strong> — dans ${d}j (${fmtDate(i.date)})`);
-      }
+      const tag = d<0 ? `🔴 <b>${i.nom}</b> — retard ${Math.abs(d)}j (${fmtDate(i.date)})` : d<=3 ? `🟡 <b>${i.nom}</b> — dans ${d}j (${fmtDate(i.date)})` : null;
+      if(!i.factureRecue){ if(tag) aFact.push(tag); }
+      else if(!i.prelevementRecu){ if(tag) aPrel.push(tag); }
+      if(i.factureRecue && !i.verifie){ aVerif.push(`<b>${i.nom}</b> — ${fmtDate(i.date)}`); }
     });
-    document.getElementById('alist').innerHTML=a.map(x=>`<div class="ai">${x}</div>`).join('');
-    document.getElementById('abar').classList.toggle('on',a.length>0);
+    const showSec=(id,barId,arr)=>{
+      document.getElementById(id).innerHTML=arr.map(x=>`<div class="ai">${x}</div>`).join('');
+      document.getElementById(barId).style.display=arr.length?'':'none';
+    };
+    showSec('alist-factures','abar-factures',aFact);
+    showSec('alist-prelevements','abar-prelevements',aPrel);
+    showSec('alist-averifier','abar-averifier',aVerif);
+    document.getElementById('abar').classList.toggle('on',aFact.length+aPrel.length+aVerif.length>0);
     updatePeriodOptions();
   }
 
