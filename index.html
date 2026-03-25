@@ -554,10 +554,10 @@
     const byDate=(a,b)=>(a.date||'').localeCompare(b.date||'');
     items.filter(i=>!isArchived(i)).sort(byDate).forEach(i=>{
       const d=daysTo(i.date);
-      const tag = d<0 ? `🔴 <b>${i.nom}</b> — retard ${Math.abs(d)}j (${fmtDate(i.date)})` : d<=3 ? `🟡 <b>${i.nom}</b> — dans ${d}j (${fmtDate(i.date)})` : null;
-      if(!i.factureRecue){ if(tag) aFact.push({tag,date:i.date}); }
-      else if(!i.prelevementRecu){ if(tag) aPrel.push({tag,date:i.date}); }
-      if(i.factureRecue && !i.verifie){ aVerif.push({tag:`<b>${i.nom}</b> — ${fmtDate(i.date)}`,date:i.date}); }
+      const urgTag = d!==null&&d<0 ? `🔴 <b>${i.nom}</b> — retard ${Math.abs(d)}j (${fmtDate(i.date)})` : d!==null&&d<=3 ? `🟡 <b>${i.nom}</b> — dans ${d}j (${fmtDate(i.date)})` : `<b>${i.nom}</b> — ${fmtDate(i.date)}`;
+      if(!i.factureRecue){ aFact.push({tag:urgTag,date:i.date}); }
+      else if(!i.prelevementRecu){ if(d!==null&&d<=3||d!==null&&d<0) aPrel.push({tag:urgTag,date:i.date}); }
+      if(i.factureRecue && !i.verifie){ aVerif.push({tag:urgTag,date:i.date}); }
     });
     const sortArr=arr=>arr.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(x=>x.tag);
     const showSec=(id,barId,arr)=>{
