@@ -445,6 +445,7 @@
   let sortBy = 'date';
   let periodFilter = '';
   let undoStack = [];
+  let gistTimer = null;
 
   // PWA manifest (standalone iOS/Android)
   const mf = {name:'Suivi Factures',short_name:'Factures',start_url:'.',display:'standalone',
@@ -474,7 +475,12 @@
     save(); render();
     document.getElementById('btn-undo').disabled=undoStack.length===0;
   }
-  function save(){ localStorage.setItem(KEY, JSON.stringify(items)); document.getElementById('btn-undo').disabled=undoStack.length===0; }
+  function save(){
+    localStorage.setItem(KEY, JSON.stringify(items));
+    document.getElementById('btn-undo').disabled=undoStack.length===0;
+    clearTimeout(gistTimer);
+    gistTimer = setTimeout(gistPush, 2000);
+  }
   function today(){ return new Date().toISOString().split('T')[0]; }
   function fmtDate(d){ if(!d)return'—'; const[y,m,j]=d.split('-'); return`${j}/${m}/${y}`; }
   function fmtMonth(d){ if(!d)return''; return new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{month:'long',year:'numeric'}); }
@@ -976,7 +982,6 @@
 
   // ── GITHUB GIST SYNC ──────────────────────────────────────────
   const GIST_CFG = 'gist_cfg_v1';
-  let gistTimer = null;
 
   function gistCfg(){ try{ return JSON.parse(localStorage.getItem(GIST_CFG)||'{}'); }catch(e){ return {}; } }
   function gistSaveCfg(o){ localStorage.setItem(GIST_CFG, JSON.stringify(o)); }
@@ -1143,14 +1148,6 @@
     const st = document.getElementById('gist-status');
     if(st) st.innerHTML = '🔑 Entrez votre nouveau token ci-dessus (le Gist ID est pré-rempli), puis cliquez <b>Connecter</b>.';
   }
-
-  // Auto-push déboncé après chaque save
-  const _origSave = save;
-  save = function(){
-    _origSave();
-    clearTimeout(gistTimer);
-    gistTimer = setTimeout(gistPush, 2000);
-  };
 
   // Pull au chargement
   gistPull();
