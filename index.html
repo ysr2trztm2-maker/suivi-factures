@@ -643,7 +643,6 @@
               <div class="row-dot pay ${i.prelevementRecu?'on':''}">P</div>
               <div class="row-dot ver ${i.verifie&&i.factureRecue?'on':''}" style="${!i.factureRecue?'opacity:.3':''}">V</div>
             </div>
-            <button class="row-edit-btn" onclick="event.stopPropagation();edit('${i.id}')" title="Modifier">✏️</button>
           </div>`;
         } else {
           html+=`<div class="${cls}" style="border-left-color:${color}"
