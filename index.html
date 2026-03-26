@@ -254,7 +254,8 @@
       <button class="btn-view" id="btn-view-toggle" onclick="setView(viewMode==='grid'?'list':'grid')" title="Changer vue">⊞</button>
       <button class="btn-icon" onclick="openChart()" title="Graphique">📊</button>
       <button class="btn-icon" onclick="openSummary()" title="Par fournisseur">👥</button>
-      <button class="btn-icon" id="btn-sync" onclick="openSync()" title="Sync">☁️<span class="sync-dot" id="sync-dot"></span></button>
+      <button class="btn-icon" id="btn-sync-now" onclick="manualSync()" title="Synchroniser maintenant">🔄</button>
+      <button class="btn-icon" id="btn-sync" onclick="openSync()" title="Paramètres sync">☁️<span class="sync-dot" id="sync-dot"></span></button>
       <button class="btn-add" onclick="openModal()">+ Ajouter</button>
     </div>
   </div>
@@ -1000,6 +1001,22 @@
       el.textContent = '☁️ Sync : ' + new Date(cfg.lastSync).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
     } else {
       el.textContent = '';
+    }
+  }
+
+  async function manualSync(){
+    if(!gistCfg().token){ alert('Gist non configuré — ouvrez les paramètres ☁️'); return; }
+    const btn = document.getElementById('btn-sync-now');
+    btn.textContent = '⏳';
+    btn.disabled = true;
+    try {
+      await gistPull();   // Récupère les données distantes
+      await gistPush();   // Envoie les données locales
+      btn.textContent = '✅';
+      setTimeout(() => { btn.textContent = '🔄'; btn.disabled = false; }, 2000);
+    } catch(e) {
+      btn.textContent = '❌';
+      setTimeout(() => { btn.textContent = '🔄'; btn.disabled = false; }, 2000);
     }
   }
 
