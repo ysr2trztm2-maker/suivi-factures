@@ -1067,9 +1067,23 @@
         headers:{'Authorization':'Bearer '+cfg.token,'Content-Type':'application/json','Accept':'application/vnd.github+json'},
         body: JSON.stringify({files:{'data.json':{content:JSON.stringify(payload)}}})
       });
-      if(r.ok){ gistSaveCfg({...cfg, lastSync:Date.now()}); syncDot('ok'); updateMainSyncLabel(); }
-      else syncDot('err');
-    } catch(e){ syncDot('err'); }
+      if(r.ok){
+        gistSaveCfg({...cfg, lastSync:Date.now()}); syncDot('ok'); updateMainSyncLabel();
+      } else {
+        syncDot('err');
+        const el = document.getElementById('main-last-sync');
+        if(el) el.innerHTML = r.status === 401
+          ? '❌ Token expiré — Paramètres → 🔑 Mettre à jour le token'
+          : '❌ Envoi échoué (erreur '+r.status+')';
+        // Relance automatique dans 30 secondes
+        setTimeout(gistPush, 30000);
+      }
+    } catch(e){
+      syncDot('err');
+      const el = document.getElementById('main-last-sync');
+      if(el) el.textContent = '❌ Sync échouée — vérifiez votre connexion';
+      setTimeout(gistPush, 30000);
+    }
   }
 
   async function gistPull(manual=false){
@@ -1080,7 +1094,14 @@
       const r = await fetch('https://api.github.com/gists/'+cfg.gistId, {
         headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json'}
       });
-      if(!r.ok){ syncDot('err'); return; }
+      if(!r.ok){
+        syncDot('err');
+        const el = document.getElementById('main-last-sync');
+        if(el) el.innerHTML = r.status === 401
+          ? '❌ Token expiré — Paramètres → 🔑 Mettre à jour le token'
+          : '❌ Réception échouée (erreur '+r.status+')';
+        return;
+      }
       const data = await r.json();
       const content = data.files?.['data.json']?.content;
       let newLastSync = cfg.lastSync || 0;
