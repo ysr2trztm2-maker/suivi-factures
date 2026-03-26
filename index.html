@@ -115,6 +115,8 @@
     .row-dot.pay.on{background:#34c759;color:#fff;}
     .row-dot.ver{background:var(--border);}
     .row-dot.ver.on{background:#af52de;color:#fff;}
+    .row-edit-btn{background:none;border:none;font-size:16px;cursor:pointer;padding:4px 6px;flex-shrink:0;opacity:.5;transition:opacity .15s;}
+    .row-edit-btn:hover,.row-edit-btn:active{opacity:1;}
     .btn-view{background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:14px;cursor:pointer;color:var(--text);transition:background .15s;}
     .btn-view.on{background:var(--primary);color:#fff;border-color:var(--primary);}
 
@@ -628,16 +630,17 @@
           const refDateTxt = (filter==='wait-facture') ? (i.dateEmission?fmtDate(i.dateEmission):'') : (i.date?fmtDate(i.date):'');
           html+=`<div class="row${isArchived(i)?' archived':''}" style="border-left-color:${color}" data-id="${i.id}"
             ontouchstart="swipeStart(event,'${i.id}')" ontouchend="swipeEnd(event,'${i.id}')"
-            onclick="edit('${i.id}')">
+            onclick="openStatus('${i.id}')">
             <div class="row-name">${i.nom||'—'}</div>
             <div class="row-date">${refDateTxt}</div>
             ${montTxt?`<div class="row-date${i.montantApprox?' approx':''}">${montTxt}</div>`:''}
-            <div class="row-dots" onclick="event.stopPropagation();openStatus('${i.id}')">
+            <div class="row-dots">
               <div class="row-dot ${i.factureRecue?'on':''}">F</div>
               <div class="row-dot pay ${i.prelevementRecu?'on':''}">P</div>
               <div class="row-dot ver ${i.verifie&&i.factureRecue?'on':''}" style="${!i.factureRecue?'opacity:.3':''}">V</div>
             </div>
             ${cdText?`<div class="row-cd ${cdClass}">${cdText}</div>`:''}
+            <button class="row-edit-btn" onclick="event.stopPropagation();edit('${i.id}')" title="Modifier">✏️</button>
           </div>`;
         } else {
           html+=`<div class="${cls}" style="border-left-color:${color}"
@@ -975,6 +978,7 @@
         <div class="status-icon">${i.verifie?'✓':'🔍'}</div>
         <div><div class="status-label">Vérifié</div><div class="status-sub">${i.verifie?'Confirmé':'À vérifier'}</div></div>
       </button>`:''}
+      <button onclick="closeStatus();edit('${id}')" style="margin-top:14px;width:100%;padding:14px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;">✏️ Modifier la facture</button>
     `;
     document.getElementById('m-status').classList.add('on');
   }
