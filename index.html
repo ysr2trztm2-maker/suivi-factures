@@ -364,6 +364,7 @@
       <div id="gist-actions" style="display:none">
         <button class="sbtn" style="width:100%;margin-top:6px" onclick="gistPull(true)">⬇ Forcer import depuis Gist</button>
         <button class="sbtn" style="width:100%;margin-top:6px" onclick="openGistHistory()">🕐 Historique des sauvegardes</button>
+        <button class="sbtn" style="width:100%;margin-top:6px" onclick="updateGistToken()">🔑 Mettre à jour le token</button>
         <button class="sbtn" style="width:100%;margin-top:6px" onclick="gistDisconnect()">🔌 Déconnecter</button>
       </div>
       <div class="last-sync" id="last-sync"></div>
@@ -1068,12 +1069,15 @@
       if(!r.ok){ syncDot('err'); return; }
       const data = await r.json();
       const content = data.files?.['data.json']?.content;
+      let newLastSync = cfg.lastSync || 0;
       if(content){
         const payload = JSON.parse(content);
         // Support ancien format (tableau direct) et nouveau format {items, _ts}
         const remote = Array.isArray(payload) ? payload : (payload.items || []);
         const remoteTs = Array.isArray(payload) ? 0 : (payload._ts || 0);
         const localTs = cfg.lastSync || 0;
+        // Mémoriser le timestamp distant pour détecter les futures mises à jour
+        if(remoteTs) newLastSync = remoteTs;
         if(manual || remoteTs > localTs){
           snapshot();
           items = remote;
@@ -1082,7 +1086,7 @@
           if(manual) alert('✅ Données importées depuis Gist ('+remote.length+' entrées)');
         }
       }
-      gistSaveCfg({...cfg, lastSync:Date.now()});
+      gistSaveCfg({...cfg, lastSync:newLastSync});
       syncDot('ok');
     } catch(e){ syncDot('err'); }
   }
@@ -1091,6 +1095,17 @@
     if(!confirm('Déconnecter GitHub Gist ? Vos données locales sont conservées.')) return;
     localStorage.removeItem(GIST_CFG);
     gistStatusUI();
+  }
+
+  // Permet de renouveler le token sans perdre le Gist ID
+  function updateGistToken(){
+    const cfg = gistCfg();
+    const idInp = document.getElementById('gist-id');
+    const tokenInp = document.getElementById('gist-token');
+    if(idInp) idInp.value = cfg.gistId || '';
+    if(tokenInp){ tokenInp.value = ''; tokenInp.focus(); }
+    const st = document.getElementById('gist-status');
+    if(st) st.innerHTML = '🔑 Entrez votre nouveau token ci-dessus (le Gist ID est pré-rempli), puis cliquez <b>Connecter</b>.';
   }
 
   // Auto-push déboncé après chaque save
@@ -1104,8 +1119,13 @@
   // Pull au chargement
   gistPull();
   gistStatusUI();
-  // Sauvegarde périodique toutes les 5 minutes
-  setInterval(()=>{ if(gistCfg().token) gistPush(); }, 5 * 60 * 1000);
+  // Sync périodique toutes les 2 minutes : pull d'abord, puis push de sécurité
+  setInterval(async ()=>{
+    if(gistCfg().token){
+      await gistPull();           // Récupère les changements distants
+      setTimeout(gistPush, 3000); // Pousse les changements locaux ensuite
+    }
+  }, 2 * 60 * 1000);
   // ─────────────────────────────────────────────────────────────
   document.getElementById('btn-view-toggle').textContent = viewMode==='grid' ? '⊞' : '☰';
   render();
@@ -1144,9 +1164,12 @@
   }
 
   initNotifs();
-  // Renvoyer les notifs quand on revient sur l'app
+  // Renvoyer les notifs + synchroniser quand on revient sur l'app
   document.addEventListener('visibilitychange', () => {
-    if(document.visibilityState === 'visible') sendNotifs();
+    if(document.visibilityState === 'visible'){
+      sendNotifs();
+      gistPull(); // Récupérer les changements de l'autre appareil
+    }
   });
 
   // ── HISTORIQUE GIST ───────────────────────────────────────────
@@ -1162,7 +1185,13 @@
       const r = await fetch('https://api.github.com/gists/'+cfg.gistId, {
         headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json'}
       });
-      if(!r.ok){ body.innerHTML='<p style="color:var(--danger);padding:16px">Erreur '+r.status+'</p>'; return; }
+      if(!r.ok){
+        const msg = r.status === 401
+          ? 'Erreur 401 — Token expiré ou invalide.<br><small>Générez un nouveau token GitHub (scope <b>gist</b>), entrez-le dans le champ token ci-dessus puis cliquez sur <b>🔑 Mettre à jour le token</b>.</small>'
+          : 'Erreur '+r.status;
+        body.innerHTML='<p style="color:var(--danger);padding:16px">'+msg+'</p>';
+        return;
+      }
       const data = await r.json();
       const history = data.history || [];
       if(!history.length){ body.innerHTML='<p style="padding:16px;color:var(--text2)">Aucun historique disponible.</p>'; return; }
